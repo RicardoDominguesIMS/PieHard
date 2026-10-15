@@ -41,15 +41,11 @@
       <p class="library-count" id="library-count" aria-live="polite">Checking the recipe library…</p>
       <div class="notice" id="notice" role="status" aria-live="polite" hidden></div>
 
-      <section id="clarification" class="clarification-card" aria-labelledby="question-title" hidden>
-        <p class="eyebrow">A QUICK QUESTION <span id="clarification-number"></span></p>
-        <h2 id="question-title"></h2>
-        <form id="clarification-form">
-          <label class="sr-only" for="clarification-answer">Your answer</label>
-          <input id="clarification-answer" name="answer" maxlength="2000"
-            placeholder="Type your answer..." required>
-          <button class="primary-button" type="submit"><span class="button-label">Continue</span><span aria-hidden="true">→</span></button>
-        </form>
+      <section id="refinement" class="clarification-card" aria-labelledby="refinement-title" hidden>
+        <p class="eyebrow" id="refinement-eyebrow">NARROW IT DOWN</p>
+        <h2 id="refinement-title"></h2>
+        <p id="refinement-note" class="refinement-note"></p>
+        <div id="refinement-options" class="option-grid" role="group" aria-labelledby="refinement-title"></div>
       </section>
 
       <section id="recipe-result" class="recipe-card" aria-live="polite" hidden>

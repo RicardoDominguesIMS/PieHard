@@ -87,7 +87,14 @@
       const span = document.createElement("span");
       const unknown = ingredient.recognition_status !== "recognized";
       span.textContent = unknown ? `${ingredient.name} (unknown)` : ingredient.name;
-      if (unknown) span.className = "ingredient-unknown";
+      if (unknown) {
+        span.className = "ingredient-unknown";
+        const icon = document.createElement("span");
+        icon.className = "review-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = "!";
+        span.prepend(icon);
+      }
       td.append(span);
     });
     if (!td.childNodes.length) td.textContent = "None";

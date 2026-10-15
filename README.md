@@ -1,6 +1,6 @@
 # Sweet Search
 
-Sweet Search finds a dessert recipe from source documents in `resources/`. Recipe-document evaluation uses the existing LLM `ask` function, extracted recipe data is indexed as one complete recipe per SQLite FTS chunk, and a natural-language search can ask up to two candidate-based clarification questions.
+Sweet Search finds a dessert recipe from source documents in `resources/`. Recipe-document evaluation uses the existing LLM `ask` function, extracted recipe data is indexed as one complete recipe per SQLite FTS chunk, and a natural-language search returns every close recipe and narrows them with clickable ingredient buttons until you pick one.
 
 ## Setup
 
@@ -44,7 +44,7 @@ The index and search sessions are stored in `data/recipes.sqlite3`; this generat
 - `src/recipe_documents.py` reads supported recipe-document formats and exposes PDF pages as independently traceable ingestion units.
 - `src/recipe_index.py` sends each source independently to `ask` for recipe extraction and faithfully translates each recipe into English during extraction (an untranslated result is retried, then reported as an error) and stores complete, isolated English chunks and metadata in SQLite FTS5.
 - `src/recipe_allergens.py` derives listed allergen groups from named recipe ingredients and retains the ingredients supporting each group. Ingredient recognition must be complete before an allergen assessment is marked assessed.
-- `src/recipe_assistant.py` retrieves candidates and manages up to two clarification questions.
+- `src/recipe_assistant.py` retrieves every close candidate deterministically (no LLM call) and narrows them with up to six ingredient buttons per step until three or fewer remain, when the buttons show recipe names.
 - `src/recipe_chunk_editor.py` powers the "Configure chunks" back-office page (`/backoffice`): it sends one selected chunk and the user's instruction to `ask`, validates the returned metadata and saves it. Edits are kept until the source page changes and is re-indexed.
 - `src/templates/` and `src/static/` contain the visual layer, separate from backend recipe logic.
 

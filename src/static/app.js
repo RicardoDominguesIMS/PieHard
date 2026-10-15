@@ -1,7 +1,7 @@
 const searchForm = document.querySelector("#search-form");
 const queryInput = document.querySelector("#recipe-query");
-const clarification = document.querySelector("#clarification");
-const clarificationForm = document.querySelector("#clarification-form");
+const refinement = document.querySelector("#refinement");
+const refinementOptions = document.querySelector("#refinement-options");
 const indexButton = document.querySelector("#index-button");
 const notice = document.querySelector("#notice");
 const recipeResult = document.querySelector("#recipe-result");
@@ -32,23 +32,50 @@ function setBusy(form, busy, buttonLabel) {
 
 function clearResult() {
   recipeResult.hidden = true;
-  clarification.hidden = true;
+  refinement.hidden = true;
+  refinementOptions.replaceChildren();
+}
+
+function optionButton(label, action, value, kind = "") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `option-button ${kind}`.trim();
+  button.textContent = label;
+  button.addEventListener("click", () => refine(action, value));
+  return button;
+}
+
+function renderOptions(result) {
+  activeSessionId = result.session_id;
+  const choosing = result.status === "choose";
+  document.querySelector("#refinement-eyebrow").textContent =
+    choosing ? "PICK YOUR RECIPE" : "NARROW IT DOWN";
+  const chosen = result.chosen_ingredients.length
+    ? ` Chosen so far: ${result.chosen_ingredients.join(", ")}.` : "";
+  document.querySelector("#refinement-title").textContent = choosing
+    ? "Which of these would you like?"
+    : `${result.candidate_count} recipes fit. Pick another ingredient you would like.`;
+  document.querySelector("#refinement-note").textContent =
+    `${result.message ? `${result.message} ` : ""}${chosen}`.trim();
+  const action = choosing ? "recipe" : "ingredient";
+  result.options.forEach((option) => {
+    refinementOptions.append(optionButton(option.label, action, option.value));
+  });
+  if (!choosing) refinementOptions.append(optionButton("None of these", "more", null, "option-secondary"));
+  refinement.hidden = false;
+  refinementOptions.querySelector("button").focus();
 }
 
 function renderResult(result) {
   clearResult();
   setNotice("");
-  if (result.status === "clarification") {
-    activeSessionId = result.session_id;
-    document.querySelector("#question-title").textContent = result.question;
-    document.querySelector("#clarification-number").textContent =
-      `· ${result.clarifications_asked} of 2`;
-    clarification.hidden = false;
-    document.querySelector("#clarification-answer").focus();
+  if (result.status === "refine" || result.status === "choose") {
+    renderOptions(result);
     return;
   }
-  if (result.status === "no_match") {
+  if (result.status === "no_match" || result.status === "restart") {
     setNotice(result.message, "info");
+    if (result.status === "restart") queryInput.focus();
     return;
   }
   if (result.status !== "selected" || !result.recipe) {
@@ -85,6 +112,14 @@ function displayRecipe(recipe, reason) {
     const name = document.createElement("span");
     const recognized = item.recognition_status === "recognized";
     name.textContent = `${item.name || "Unknown ingredient"}${recognized ? "" : " (needs review)"}`;
+    if (!recognized) {
+      li.classList.add("ingredient-review");
+      const icon = document.createElement("span");
+      icon.className = "review-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "!";
+      name.prepend(icon);
+    }
     li.append(name);
     if (item.quantity) {
       const quantity = document.createElement("span");
@@ -105,10 +140,25 @@ function displayRecipe(recipe, reason) {
     .map((item) => item.recognition_note
       ? `${item.name || "Unnamed ingredient"} (${item.recognition_note})`
       : (item.name || "Unnamed ingredient"));
-  const allergenText = allergens.length
+  const allergenList = document.querySelector("#allergen-list");
+  allergenList.textContent = allergens.length
     ? allergens.map((item) => item.name).join(", ")
     : "No listed allergens were identified from the recognized ingredients.";
-  document.querySelector("#allergen-list").textContent = allergenText;
+  const doubtful = ingredients.filter((item) => item.recognition_status !== "recognized");
+  if (doubtful.length) {
+    const wrapper = document.createElement("span");
+    wrapper.className = "allergen-doubt";
+    doubtful.forEach((item, index) => {
+      const entry = document.createElement("span");
+      entry.className = "ingredient-review";
+      const icon = document.createElement("span");
+      icon.className = "review-icon";
+      icon.textContent = "!";
+      entry.append(icon, `${item.name || "Unnamed ingredient"} (needs review)`);
+      wrapper.append(index ? ", " : " ", entry);
+    });
+    allergenList.append(wrapper);
+  }
   const needsReview = recipe.allergen_status !== "assessed";
   document.querySelector("#allergen-caveat").textContent = needsReview
     ? `Allergen identification needs review because ${unrecognizedIngredients.length
@@ -134,22 +184,15 @@ searchForm.addEventListener("submit", async (event) => {
   }
 });
 
-clarificationForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setBusy(clarificationForm, true, "Checking…");
+async function refine(action, value) {
+  refinementOptions.querySelectorAll("button").forEach((button) => { button.disabled = true; });
   try {
-    const answer = document.querySelector("#clarification-answer").value;
-    renderResult(await postJson("/api/clarify", {
-      session_id: activeSessionId,
-      answer,
-    }));
-    clarificationForm.reset();
+    renderResult(await postJson("/api/refine", { session_id: activeSessionId, action, value }));
   } catch (error) {
+    refinementOptions.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     setNotice(error.message, "error");
-  } finally {
-    setBusy(clarificationForm, false, "Continue");
   }
-});
+}
 
 indexButton?.addEventListener("click", async () => {
   indexButton.disabled = true;

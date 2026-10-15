@@ -52,6 +52,12 @@ h1 em { color: var(--accent); font-weight: 500; }
 .clarification-card { margin-top: 32px; padding: 25px; }
 .clarification-card h2 { margin: 8px 0 18px; font-size: 24px; font-weight: 500; }
 .clarification-card form { display: flex; gap: 10px; }
+.refinement-note { margin: -8px 0 16px; color: var(--muted, #7a6a5d); font-size: 14px; }
+.option-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.option-button { border: 1px solid var(--line); border-radius: 999px; background: var(--white); padding: 12px 16px; font: inherit; cursor: pointer; text-align: center; }
+.option-button:hover, .option-button:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px; }
+.option-button:disabled { opacity: .5; cursor: wait; }
+.option-secondary { border-style: dashed; }
 .clarification-card input { min-width: 0; flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; outline-color: var(--accent); }
 
 .recipe-card { margin: 36px 0 0; padding: clamp(22px, 5vw, 42px); scroll-margin-top: 20px; }
@@ -73,6 +79,9 @@ h1 em { color: var(--accent); font-weight: 500; }
 .recipe-columns h3, .allergen-section h3 { margin: 6px 0 16px; font-family: "Playfair Display", Georgia, serif; font-size: 23px; font-weight: 500; }
 .ingredient-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .ingredient-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; border-bottom: 1px dashed #eee4da; padding-bottom: 8px; font-size: 13px; line-height: 1.5; }
+.ingredient-list li.ingredient-review { color: #b3261e; font-weight: 600; }
+.allergen-doubt .ingredient-review { color: #b3261e; font-weight: 600; white-space: nowrap; }
+.review-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 50%; background: #b3261e; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; vertical-align: middle; }
 .ingredient-quantity { flex: 0 0 auto; color: #9c7663; font-size: 11px; }
 .instructions-text { color: #655b54; font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .allergen-section { display: flex; gap: 14px; border-radius: 10px; padding: 17px; background: #fff7ed; }
@@ -116,7 +125,7 @@ h1 em { color: var(--accent); font-weight: 500; }
 .chunk-table tbody tr.is-updated td { animation: chunk-flash 1.8s ease-out; }
 .chunk-table .status-review { color: #923d2b; font-weight: 700; }
 .chunk-table .status-ok { color: #436a45; font-weight: 600; }
-.chunk-table .ingredient-unknown { color: #923d2b; font-weight: 600; }
+.chunk-table .ingredient-unknown { color: #b3261e; font-weight: 600; }
 @keyframes chunk-flash { from { background: #f5fbf2; } to { background: transparent; } }
 .topbar-actions { display: inline-flex; gap: 10px; align-items: center; }
 .chunk-table .sort-button { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; text-transform: inherit; letter-spacing: inherit; font: inherit; }

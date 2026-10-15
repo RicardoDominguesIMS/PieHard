@@ -69,25 +69,23 @@ def create_app(
             app.logger.exception("Recipe search failed.")
             return jsonify({"error": "Recipe search failed. Check the application logs."}), 500
 
-    @app.post("/api/clarify")
-    def clarify_search() -> Any:
+    @app.post("/api/refine")
+    def refine_search() -> Any:
         payload = _json_payload()
         session_id = payload.get("session_id")
-        answer = payload.get("answer")
-        if not isinstance(session_id, str) or not isinstance(answer, str):
-            return jsonify({"error": "A search session and clarification answer are required."}), 400
-        if len(answer) > 2000:
-            return jsonify({"error": "Please keep your answer to 2,000 characters or fewer."}), 400
+        action = payload.get("action")
+        value = payload.get("value")
+        if not isinstance(session_id, str) or not isinstance(action, str):
+            return jsonify({"error": "A search session and an action are required."}), 400
+        if value is not None and (not isinstance(value, str) or len(value) > 500):
+            return jsonify({"error": "The selected option is not valid."}), 400
         try:
-            return jsonify(assistant.answer_clarification(session_id, answer))
+            return jsonify(assistant.refine_search(session_id, action, value))
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
-        except RuntimeError as exc:
-            app.logger.warning("Recipe search service unavailable: %s", exc)
-            return jsonify({"error": str(exc)}), 503
         except Exception:
-            app.logger.exception("Recipe clarification failed.")
-            return jsonify({"error": "Recipe clarification failed. Check the application logs."}), 500
+            app.logger.exception("Recipe refinement failed.")
+            return jsonify({"error": "Recipe refinement failed. Check the application logs."}), 500
 
     @app.get("/backoffice")
     def backoffice() -> str:

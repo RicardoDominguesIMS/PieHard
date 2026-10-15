@@ -273,41 +273,100 @@ class RecipeWorkflowTests(unittest.TestCase):
             [assessed],
         )
 
-    @patch("recipe_assistant.ask")
-    def test_search_asks_clarification_and_then_returns_single_recipe(self, ask):
-        source = "Dessert: Berry tart strawberries Dessert: Lemon cake lemons"
-        (self.resources / "recipes.txt").write_text(source, encoding="utf-8")
-        one = recipe(
-            "Berry tart", ["strawberries"], "Dessert: Berry tart strawberries", "recipes.txt"
-        )
-        two = recipe(
-            "Lemon cake", ["lemons"], "Dessert: Lemon cake lemons", "recipes.txt"
-        )
-        with patch("recipe_index.ask", return_value=json.dumps(review(one, two))):
-            self.index.index_resources()
-        berry_id = next(
-            item["recipe_id"] for item in self.index.search("strawberries")
-            if item["metadata"]["name"] == "Berry tart"
-        )
-        ask.side_effect = [
-            json.dumps({"action": "clarify", "question": "Would you prefer berries or citrus?"}),
-            json.dumps({"action": "clarify", "question": "Would you prefer a tart or cake?"}),
+    CAKES = [
+        ("Berry cake", ["flour", "berries", "sugar"]),
+        ("Lemon cake", ["flour", "lemon", "sugar"]),
+        ("Apple cake", ["flour", "apple", "cinnamon"]),
+        ("Carrot cake", ["flour", "carrot", "walnut"]),
+        ("Chocolate cake", ["flour", "cocoa", "sugar"]),
+    ]
+
+    def _index_cakes(self, extra=()):
+        cakes = [*self.CAKES, *extra]
+        (self.resources / "cakes.txt").write_text("cakes", encoding="utf-8")
+        records = [
+            recipe(name, ingredients, f"{name}: {', '.join(ingredients)}. Bake.", "cakes.txt")
+            for name, ingredients in cakes
         ]
-        assistant = RecipeAssistant(self.index)
+        with patch("recipe_index.ask", return_value=json.dumps(review(*records))):
+            self.index.index_resources()
+        return RecipeAssistant(self.index)
 
-        result = assistant.start_search("dessert")
+    def test_query_splits_into_terms_and_exclusions(self):
+        terms, groups, words = RecipeAssistant._split_query(
+            "something with pineapple without eggs"
+        )
+        self.assertEqual((terms, groups, words), (["pineapple"], {"eggs"}, set()))
+        terms, groups, words = RecipeAssistant._split_query("cake without cinnamon")
+        self.assertEqual((terms, groups, words), (["cake"], set(), {"cinnamon"}))
 
-        self.assertEqual(result["status"], "clarification")
-        ask.assert_called_once()
-        session_id = result["session_id"]
-        answer = assistant.answer_clarification(session_id, "berries")
-        self.assertEqual(answer["status"], "clarification")
-        self.assertEqual(answer["clarifications_asked"], 2)
-        self.assertEqual(ask.call_count, 2)
-        answer = assistant.answer_clarification(session_id, "a tart")
-        self.assertEqual(answer["status"], "selected")
-        self.assertEqual(answer["recipe"]["name"], "Berry tart")
-        self.assertEqual(ask.call_count, 2)
+    def test_search_narrows_with_ingredient_buttons_then_offers_recipe_names(self):
+        assistant = self._index_cakes()
+
+        result = assistant.start_search("cake")
+
+        self.assertEqual(result["status"], "refine")
+        self.assertEqual(result["candidate_count"], 5)
+        values = [option["value"] for option in result["options"]]
+        self.assertEqual(len(values), 6)
+        self.assertEqual(values[0], "sugar")
+        self.assertNotIn("flour", values)
+
+        result = assistant.refine_search(result["session_id"], "ingredient", "sugar")
+
+        self.assertEqual(result["status"], "choose")
+        names = [option["label"] for option in result["options"]]
+        self.assertEqual(sorted(names), ["Berry cake", "Chocolate cake", "Lemon cake"])
+        self.assertEqual(result["chosen_ingredients"], ["sugar"])
+
+        chosen = next(o["value"] for o in result["options"] if o["label"] == "Lemon cake")
+        selected = assistant.refine_search(result["session_id"], "recipe", chosen)
+        self.assertEqual(selected["status"], "selected")
+        self.assertEqual(selected["recipe"]["name"], "Lemon cake")
+
+    def test_none_of_these_shows_more_ingredients_then_asks_to_search_again(self):
+        assistant = self._index_cakes()
+        result = assistant.start_search("cake")
+        first = [option["value"] for option in result["options"]]
+
+        result = assistant.refine_search(result["session_id"], "more")
+        self.assertEqual(result["status"], "refine")
+        self.assertEqual(len(result["options"]), 2)
+        self.assertFalse(set(first) & {option["value"] for option in result["options"]})
+
+        result = assistant.refine_search(result["session_id"], "more")
+        self.assertEqual(result["status"], "restart")
+        self.assertIn("more selection criteria", result["message"])
+
+    def test_refinement_rejects_unoffered_choices(self):
+        assistant = self._index_cakes()
+        session_id = assistant.start_search("cake")["session_id"]
+
+        with self.assertRaises(ValueError):
+            assistant.refine_search(session_id, "ingredient", "flour")
+        with self.assertRaises(ValueError):
+            assistant.refine_search(session_id, "recipe", "anything")
+
+    def test_exclusions_are_applied_before_counting_candidates(self):
+        assistant = self._index_cakes(extra=[("Custard cake", ["flour", "eggs", "milk"])])
+
+        result = assistant.start_search("cake without eggs")
+
+        self.assertEqual(result["candidate_count"], 5)
+        self.assertNotIn("milk", [option["value"] for option in result["options"]])
+        result = assistant.start_search("cake without cinnamon")
+        self.assertEqual(result["candidate_count"], 5)
+
+    def test_search_falls_back_to_approximate_matches_and_reports_no_match(self):
+        assistant = self._index_cakes()
+
+        result = assistant.start_search("walnut and lemon")
+        self.assertEqual(result["status"], "choose")
+        self.assertTrue(result["approximate"])
+        self.assertEqual(sorted(o["label"] for o in result["options"]), ["Carrot cake", "Lemon cake"])
+        self.assertIn("approximate", result["message"])
+
+        self.assertEqual(assistant.start_search("mango")["status"], "no_match")
 
     def _index_caramel_recipe(self):
         source = "Flan\n1 egg\n1 caramelo\nMix."
