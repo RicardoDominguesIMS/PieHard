@@ -8,7 +8,13 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+/data/recipes.sqlite3
+/data/recipes.sqlite3-shm
+/data/recipes.sqlite3-wal
 
 # os / editor
 .DS_Store
 .idea/
+
+# runtime
+.run/

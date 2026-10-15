@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fff8f0">
+    <title>Configure chunks — Sweet Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='backoffice.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="page-shell backoffice-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Sweet Search home">
+          <span class="brand-mark" aria-hidden="true">✳</span>
+          <span>sweet search</span>
+        </a>
+        <a class="quiet-button link-button" href="/">Back to search</a>
+      </header>
+
+      <h1 class="backoffice-title">Configure chunks</h1>
+
+      <section class="search-panel" aria-label="Update the selected chunk">
+        <form id="chunk-form">
+          <label class="sr-only" for="chunk-instruction">Describe the change to the selected chunk</label>
+          <textarea id="chunk-instruction" name="instruction" rows="2" maxlength="2000"
+            placeholder="Select a row below, then describe the change. For example: “Mark ‘caramelo’ as recognized sugar caramel and add its allergens.”"></textarea>
+          <div class="search-footer">
+            <span class="hint" id="selected-chunk" aria-live="polite">No chunk selected</span>
+            <button class="primary-button" id="chunk-submit" type="submit" disabled>Update chunk</button>
+          </div>
+        </form>
+      </section>
+
+      <div id="backoffice-message" class="notice" role="status" hidden></div>
+
+      <section class="chunk-table-wrap" aria-label="Recipe chunks">
+        <table class="chunk-table" id="chunk-table">
+          <caption class="sr-only">All recipe chunks in the index. Select one row to edit its metadata.</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sort="select" aria-sort="none"><button type="button" class="sort-button">Select<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="source" aria-sort="none"><button type="button" class="sort-button">Source<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="name" aria-sort="none"><button type="button" class="sort-button">Name<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="difficulty" aria-sort="none"><button type="button" class="sort-button">Difficulty<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="servings" aria-sort="none"><button type="button" class="sort-button">Servings<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="ingredients" aria-sort="none"><button type="button" class="sort-button">Ingredients<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="allergens" aria-sort="none"><button type="button" class="sort-button">Allergens<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="utensils" aria-sort="none"><button type="button" class="sort-button">Utensils<span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-sort="status" aria-sort="none"><button type="button" class="sort-button">Status<span class="sort-indicator" aria-hidden="true"></span></button></th>
+            </tr>
+          </thead>
+          <tbody id="chunk-rows"></tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

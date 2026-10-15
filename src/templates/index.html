@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#fff8f0">
+    <title>Sweet Search — Dessert Recipe Finder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Sweet Search home">
+          <span class="brand-mark" aria-hidden="true">✳</span>
+          <span>sweet search</span>
+        </a>
+        <span class="topbar-actions"><a class="quiet-button link-button" href="/backoffice">Configure chunks</a></span>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">YOUR NEXT LITTLE JOY</p>
+        <h1 id="page-title">What sounds <em>sweet?</em></h1>
+        <p class="intro-copy">Tell us what you’re craving. We’ll find a recipe from the collection that fits.</p>
+      </section>
+
+      <section class="search-panel" aria-label="Find a dessert recipe">
+        <form id="search-form">
+          <label class="sr-only" for="recipe-query">Describe the dessert you want</label>
+          <textarea id="recipe-query" name="query" rows="2" maxlength="4000"
+            placeholder="Something lemony, not too difficult, for a few friends..." required></textarea>
+          <div class="search-footer">
+            <span class="hint">Ingredients, difficulty, servings, utensils — tell us what matters.</span>
+            <button class="primary-button" type="submit">
+              <span class="button-label">Find my recipe</span><span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <p class="library-count" id="library-count" aria-live="polite">Checking the recipe library…</p>
+      <div class="notice" id="notice" role="status" aria-live="polite" hidden></div>
+
+      <section id="clarification" class="clarification-card" aria-labelledby="question-title" hidden>
+        <p class="eyebrow">A QUICK QUESTION <span id="clarification-number"></span></p>
+        <h2 id="question-title"></h2>
+        <form id="clarification-form">
+          <label class="sr-only" for="clarification-answer">Your answer</label>
+          <input id="clarification-answer" name="answer" maxlength="2000"
+            placeholder="Type your answer..." required>
+          <button class="primary-button" type="submit"><span class="button-label">Continue</span><span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+
+      <section id="recipe-result" class="recipe-card" aria-live="polite" hidden>
+        <div class="recipe-heading">
+          <div>
+            <p class="eyebrow">YOUR MATCH</p>
+            <h2 id="recipe-name"></h2>
+          </div>
+          <span id="difficulty-badge" class="difficulty-badge"></span>
+        </div>
+        <p id="match-reason" class="match-reason"></p>
+        <div class="recipe-meta">
+          <div class="meta-item">
+            <span class="meta-icon" aria-hidden="true">♆</span>
+            <div><span class="meta-label">Servings</span><strong id="servings-count"></strong></div>
+          </div>
+          <div class="meta-item utensils-meta">
+            <span class="meta-icon" aria-hidden="true">⌁</span>
+            <div><span class="meta-label">Utensils</span><strong id="utensils-summary"></strong></div>
+          </div>
+        </div>
+        <div class="recipe-columns">
+          <section class="ingredients-section" aria-labelledby="ingredients-heading">
+            <p class="eyebrow">THE GOOD STUFF</p>
+            <h3 id="ingredients-heading">Ingredients</h3>
+            <ul id="ingredient-list" class="ingredient-list"></ul>
+          </section>
+          <section class="instructions-section" aria-labelledby="instructions-heading">
+            <p class="eyebrow">TAKE IT STEP BY STEP</p>
+            <h3 id="instructions-heading">Preparation</h3>
+            <div id="instructions-text" class="instructions-text"></div>
+          </section>
+        </div>
+        <section class="allergen-section" aria-labelledby="allergen-heading">
+          <span class="allergen-icon" aria-hidden="true">!</span>
+          <div>
+            <h3 id="allergen-heading">Allergens in listed ingredients</h3>
+            <p id="allergen-list"></p>
+            <p id="allergen-caveat" class="allergen-caveat"></p>
+          </div>
+        </section>
+        <p id="source-reference" class="source-reference"></p>
+      </section>
+
+      <footer class="page-footer">
+        <span>Made for the moments worth saving room for.</span>
+        <span class="footer-sparkle" aria-hidden="true">✳</span>
+      </footer>
+    </main>
+  </body>
+</html>
