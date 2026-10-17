@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sweet Search process diagram</title>
+<style>body{font-family:system-ui,sans-serif;margin:24px;background:#fff;color:#222}section{margin-bottom:56px}.mermaid{overflow:auto}.mermaid svg{max-width:none!important;height:auto}</style></head>
+<body><h1>Sweet Search process diagram</h1><section><h2>Macro process</h2><div class="mermaid">flowchart LR
+    subgraph SOL[Sweet Search solution - implemented]
+        direction LR
+        DOC[resources/ recipe documents]
+        ING[Ingestion and indexing]
+        IDX[(RAG index: one chunk per recipe, with metadata and source)]
+        SRCH[Search and ingredient refinement]
+        CRIT[Validate LLM search criteria]
+        FILTER[Validate LLM candidates and enforce safety rules]
+        FRONT[Search page]
+        BACK[Configure chunks page]
+    end
+
+    subgraph EXT[External service - outside the implemented solution]
+        LLM{{LLM reached through ask}}
+    end
+
+    DOC --&gt;|1. recipe unit| ING
+    ING ==&gt;|&quot;2. ask: extract and translate to English&quot;| LLM
+    LLM ==&gt;|3. recipe JSON| ING
+    ING --&gt;|4. write chunks| IDX
+    FRONT --&gt;|5. full natural-language request| SRCH
+    SRCH ==&gt;|&quot;6. ask: request + available metadata schema&quot;| LLM
+    LLM ==&gt;|&quot;7. positive terms, exclusions, quantities, preferences&quot;| CRIT
+    CRIT --&gt;|8. query matching chunks| IDX
+    IDX --&gt;|9. all matching candidate chunks| SRCH
+    SRCH ==&gt;|&quot;10. ask: full request + search criteria + complete chunks + ALL metadata&quot;| LLM
+    LLM ==&gt;|&quot;11. matching IDs + optional recommendation and reason&quot;| FILTER
+    SRCH --&gt; FILTER
+    FILTER --&gt;|12. no match or one recommended recipe| FRONT
+    FILTER --&gt;|13. several without soft preference: existing choice flow| SRCH
+    BACK --&gt;|14. row and instruction| UPD[Chunk update]
+    IDX --&gt;|15. read chunk| UPD
+    UPD ==&gt;|&quot;16. ask: update metadata&quot;| LLM
+    LLM ==&gt;|17. updated metadata| UPD
+    UPD --&gt;|18. write chunk| IDX
+
+    classDef llm fill:#ffe0b2,stroke:#e65100,stroke-width:3px,color:#000
+    classDef rag fill:#e3f2fd,stroke:#1565c0,color:#000
+    class LLM llm
+    class IDX rag
+    style SOL fill:#f5f5f5,stroke:#616161
+    style EXT fill:#fff3e0,stroke:#e65100,stroke-width:3px,stroke-dasharray: 6 4
+    linkStyle 1,2,5,6,9,10,17,18 stroke:#e65100,stroke-width:3px
+</div></section>
+<section><h2>1. Ingestion and indexing (LLM)</h2><div class="mermaid">flowchart TD
+    A[resources/ documents] --&gt; B[Split into units: one PDF page per unit]
+    B --&gt; C{Unit hash unchanged and evaluator version current?}
+    C -- yes --&gt; D[Skip: keep existing chunks]
+    C -- no --&gt; E[[&quot;EXTERNAL LLM - ask #1: extract and translate recipes to English (JSON)&quot;]]
+    E --&gt; F{Valid JSON?}
+    F -- no --&gt; M{Attempts left, max 5?}
+    M -- yes --&gt; E
+    M -- no --&gt; N[Report extraction error]
+    F -- yes --&gt; O{Text still not English?}
+    O -- yes --&gt; G[[&quot;EXTERNAL LLM - ask #2: rewrite the result in English&quot;]]
+    G --&gt; P{Valid JSON and English?}
+    P -- no --&gt; M
+    P -- yes --&gt; H
+    O -- no --&gt; H[Derive allergen groups from recognized ingredients]
+    H --&gt; I[(RAG index: one chunk per recipe, with metadata and source)]
+    I --&gt; J[Remove stale chunks of changed units]
+
+    classDef llm fill:#ffe0b2,stroke:#e65100,stroke-width:3px,color:#000
+    class E,G llm
+</div></section>
+<section><h2>2. Recipe search (RAG retrieval and LLM filtering)</h2><div class="mermaid">flowchart TD
+    U[User types a natural-language request] --&gt; API[&quot;POST /api/search&quot;]
+    API --&gt; QI[Send full request and available metadata schema]
+    subgraph EXT[External LLM - outside the solution]
+        QLLM[[&quot;ask: interpret request into RAG criteria&quot;]]
+        LLM[[&quot;ask: filter candidates by natural-language criteria&quot;]]
+    end
+    QI ==&gt;|ask request| QLLM
+    QLLM ==&gt;|positive terms, exclusions, quantities, preferences| QC[Validate criteria]
+    QC --&gt; RQ[(RAG query using validated LLM criteria; local pre-filter, relevance ranking, best 12)]
+    RQ --&gt; C[Complete matching chunks]
+    C --&gt; S[Send full request and full chunks with all metadata]
+    S ==&gt;|ask request| LLM
+    LLM ==&gt;|matching IDs and optional recommended ID + reason| T[Validate IDs and apply backend safety rules]
+    T --&gt; PREF{Soft preference requested?}
+    PREF -- yes --&gt; Y[Return recommended recipe and grounded reason]
+    PREF -- no --&gt; W{Number of candidates}
+    W -- 0 --&gt; X[No match message]
+    W -- 1 --&gt; Y[Return the recipe]
+    W -- 2 to 3 --&gt; Z[Recipe-name buttons]
+    W -- 4 or more --&gt; AA[Up to 6 most frequent ingredient buttons]
+    AA --&gt; AB[&quot;POST /api/refine&quot;]
+    Z --&gt; AB
+    AB --&gt; AC[(RAG query: read the session state and chunks)]
+    AC --&gt; AD{User action}
+    AD -- ingredient --&gt; AE[Keep candidates containing it]
+    AD -- None of these --&gt; AF[Show next 6 ingredients]
+    AD -- recipe name --&gt; Y
+    AE --&gt; W
+    AF --&gt; AG{Options left?}
+    AG -- yes --&gt; AA
+    AG -- no --&gt; AH[Ask the user to enter the request again with more criteria]
+    Y --&gt; AI[Visual layer displays the complete chunk and metadata]
+
+    classDef llm fill:#ffe0b2,stroke:#e65100,stroke-width:3px,color:#000
+    class QLLM,LLM llm
+    style EXT fill:#fff3e0,stroke:#e65100,stroke-width:3px,stroke-dasharray: 6 4
+</div></section>
+<section><h2>3. Backoffice: Configure chunks (LLM)</h2><div class="mermaid">flowchart TD
+    A[Open /backoffice] --&gt; B[&quot;GET /api/chunks&quot;]
+    B --&gt; C[(RAG query: list all chunks)]
+    C --&gt; D[Sortable table]
+    D --&gt; E[User selects a row and writes an instruction]
+    E --&gt; F[&quot;POST /api/chunks/id/update&quot;]
+    F --&gt; G[(RAG query: get the chunk)]
+    G --&gt; H[[&quot;EXTERNAL LLM - ask #3: chunk and instruction, returns updated metadata (JSON)&quot;]]
+    H --&gt; I{Valid structure, in English?}
+    I -- no --&gt; J[Show the error, chunk unchanged]
+    I -- yes --&gt; K[(RAG update: save metadata and manual edit)]
+    K --&gt; L[Refresh the table]
+
+    classDef llm fill:#ffe0b2,stroke:#e65100,stroke-width:3px,color:#000
+    class H llm
+</div></section>
+<script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true,securityLevel:"loose"});</script>
+</body></html>
