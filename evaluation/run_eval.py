@@ -1,4 +1,4 @@
-"""Runs evaluation/golden.csv through the real search and fills the
+"""Runs evaluation/golden_v2.csv through the real search and fills the
 "Returned recipe" and "Notes" columns with the result.
 
 A row whose Notes start with "Expected: no match." must return no recipe.
@@ -9,6 +9,7 @@ Usage: PYTHONPATH=src python evaluation/run_eval.py [test case id ...]
 """
 import csv
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -20,7 +21,7 @@ from llm import ask  # noqa: E402
 from recipe_assistant import RecipeAssistant  # noqa: E402
 from recipe_index import RecipeIndex  # noqa: E402
 
-GOLDEN = ROOT / "evaluation" / "golden.csv"
+GOLDEN = ROOT / "evaluation" / "golden_v2.csv"
 JUDGE_PROMPT = (ROOT / "evaluation" / "judge_prompt.md").read_text(encoding="utf-8")
 COLUMNS = ["Test Case ID", "User Input", "Expected Category", "Returned recipe", "Notes"]
 RESULT_MARK = " | Result: "
@@ -44,16 +45,44 @@ def drive_to_result(assistant: RecipeAssistant, response: dict) -> dict:
     return response
 
 
+PEOPLE_PATTERNS = [
+    r"\bfor (\d+)\b",
+    r"\b(\d+) (?:people|persons|guests|portions|servings)\b",
+    r"\bparty of (\d+)\b",
+    r"\bthere are (\d+)\b",
+]
+
+
+def check_servings(request: str, recipe: dict) -> dict:
+    """Deterministic check: the recipe must serve at least the requested number of people."""
+    people = next(
+        (int(m.group(1)) for p in PEOPLE_PATTERNS if (m := re.search(p, request, re.IGNORECASE))),
+        None,
+    )
+    if people is None:
+        return {"verdict": "PASS", "evidence": "no number of people requested"}
+    numbers = re.findall(r"\d+", str(recipe.get("servings", "")))
+    if not numbers:
+        return {"verdict": "UNKNOWN", "evidence": f"servings: {recipe.get('servings')}"}
+    served = int(numbers[0])
+    verdict = "PASS" if served >= people else "FAIL"
+    return {"verdict": verdict, "evidence": f"servings {served} for {people} people"}
+
+
 def judge(criterion: str, request: str, recipe: dict) -> dict:
     prompt = json.dumps(
         {"request": request, "criterion": criterion, "chunk": recipe}, ensure_ascii=False
     )
+    raw = ask(prompt, system=JUDGE_PROMPT)
     try:
-        result = json.loads(ask(prompt, system=JUDGE_PROMPT))
+        result = json.loads(raw)
         if result.get("verdict") in {"PASS", "FAIL", "UNKNOWN"}:
             return result
-    except (ValueError, TypeError):
-        pass
+    except (ValueError, TypeError, AttributeError):
+        # The judge sometimes writes unescaped quotes in the evidence; the verdict is still readable.
+        match = re.search(r'"verdict"\s*:\s*"(PASS|FAIL|UNKNOWN)"', raw)
+        if match:
+            return {"verdict": match.group(1), "evidence": raw}
     return {"verdict": "UNKNOWN", "evidence": "invalid judge output"}
 
 
@@ -86,7 +115,11 @@ def main() -> None:
                 criteria.append(row["Expected Category"])
             failed = []
             for name in criteria:
-                verdict = judge(CRITERIA[name], request, recipe)
+                verdict = (
+                    check_servings(request, recipe)
+                    if name == "servings"
+                    else judge(CRITERIA[name], request, recipe)
+                )
                 if verdict["verdict"] != "PASS":
                     failed.append(f"{name}={verdict['verdict']}")
             result = "PASS" if not failed else "FAIL (" + "; ".join(failed) + ")"

@@ -19,11 +19,13 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=base_url, api_key=api_key)
 
 
-def ask(prompt: str, system: str | None = None) -> str:
+def ask(prompt: str, system: str | None = None, temperature: float = 0) -> str:
     messages = ([{"role": "system", "content": system}] if system else []) + [
         {"role": "user", "content": prompt}
     ]
     response = get_client().chat.completions.create(
-        model=os.environ.get("LLM_MODEL") or DEFAULT_MODEL, messages=messages
+        model=os.environ.get("LLM_MODEL") or DEFAULT_MODEL,
+        messages=messages,
+        temperature=temperature,
     )
     return response.choices[0].message.content

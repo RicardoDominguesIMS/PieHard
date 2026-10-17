@@ -21,7 +21,7 @@ Source recipe documents in `resources/` may be written in another language. Duri
 
 - Treat every supported recipe document placed in `resources/` as a source that must be evaluated and indexed by the application.
 - Support plain text, Markdown, HTML, text-based PDF, and DOCX source documents. Evaluate PDF pages independently and retain the page number in each source reference. Explicitly report unsupported or unreadable files/pages; never silently skip them as successfully processed recipes.
-- Use the existing `ask` function in `src/llm.py` to evaluate each document, translate it into English, and extract its recipe information. Do not introduce a separate LLM client for document evaluation.
+- Use the existing `ask` function in `src/llm.py` to evaluate each document, translate it into English, and extract its recipe information. Do not introduce a separate LLM client for document evaluation. `ask` uses `temperature=0` by default for repeatable results.
 - Request source-grounded extraction, but do not programmatically validate evidence quotations or block recipe records based on semantic uncertainty.
 - Identify allergen groups from the recipe's explicitly listed ingredients. Store the ingredient names supporting each identified group; do not infer product-specific or cross-contamination risks.
 - Mark allergen identification as assessed when every listed ingredient is recognized. If any ingredient is not recognized, mark the assessment as needing review and identify that ingredient. Do not claim that an empty allergen list means allergen-free.
