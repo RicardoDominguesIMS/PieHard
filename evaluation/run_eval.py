@@ -1,4 +1,4 @@
-"""Runs evaluation/golden_v2.csv through the real search and fills the
+"""Runs evaluation/golden_v3.csv through the real search and fills the
 "Returned recipe" and "Notes" columns with the result.
 
 A row whose Notes start with "Expected: no match." must return no recipe.
@@ -21,7 +21,7 @@ from llm import ask  # noqa: E402
 from recipe_assistant import RecipeAssistant  # noqa: E402
 from recipe_index import RecipeIndex  # noqa: E402
 
-GOLDEN = ROOT / "evaluation" / "golden_v2.csv"
+GOLDEN = ROOT / "evaluation" / "golden_v3.csv"
 JUDGE_PROMPT = (ROOT / "evaluation" / "judge_prompt.md").read_text(encoding="utf-8")
 COLUMNS = ["Test Case ID", "User Input", "Expected Category", "Returned recipe", "Notes"]
 RESULT_MARK = " | Result: "
