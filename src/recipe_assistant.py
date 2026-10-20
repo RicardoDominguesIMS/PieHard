@@ -43,7 +43,7 @@ RESTART_MESSAGE = (
     "None of the offered ingredients narrowed the results enough. Please enter your "
     "request again with more selection criteria."
 )
-SEARCH_FILTER_PROMPT = load_prompt("search_filter_v1")
+SEARCH_FILTER_PROMPT = load_prompt("search_filter_v3")
 FILTER_BATCH_CHARS = 40000
 MAX_FILTER_CANDIDATES = 12
 SEARCH_QUERY_PROMPT = load_prompt("search_query_v1")
@@ -288,6 +288,26 @@ class RecipeAssistant:
             raise RuntimeError("The LLM returned invalid recipe-filter results.") from exc
         if not isinstance(result, dict):
             raise RuntimeError("The LLM returned invalid recipe-filter results.")
+        evaluations = result.get("evaluations")
+        if evaluations is not None:
+            # Per-candidate verdicts are decided before the summary list, so
+            # they are authoritative when present.
+            if (
+                not isinstance(evaluations, list)
+                or any(
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("recipe_id"), str)
+                    or not isinstance(item.get("passes"), bool)
+                    for item in evaluations
+                )
+                or any(item["recipe_id"] not in candidate_ids for item in evaluations)
+            ):
+                raise RuntimeError("The LLM returned invalid recipe-filter results.")
+            result = dict(result)
+            result.pop("evaluations")
+            result["candidate_ids"] = [
+                item["recipe_id"] for item in evaluations if item["passes"]
+            ]
         ids = result.get("candidate_ids")
         if isinstance(ids, list) and all(isinstance(i, str) for i in ids):
             ids = list(dict.fromkeys(ids))

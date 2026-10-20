@@ -14,6 +14,10 @@ You judge exactly ONE criterion per call. Judge only the criterion supplied, usi
 
 For a criterion that asks whether an ingredient is present, accept the same ingredient written differently. Accept: synonyms and regional names (cornflour = corn starch; ground ginger = ginger powder), a different form or preparation of the same ingredient (lemon = zest of lemon; chocolate (70% cocoa) = dark chocolate; pear = Rocha pear), singular or plural, and translation leftovers. Do not accept a different ingredient or a different product, even if related (jam is not jelly; butter is not oil; milk is not coconut milk). When you are unsure whether two names are the same ingredient, return UNKNOWN, never PASS.
 
+## Allergen and diet criteria
+
+First list the foods or allergens the REQUEST says to avoid (for example coeliac = gluten, lactose intolerant = milk, tree nut allergy = tree nuts). Judge only those. An allergen listed in the chunk that the request does not ask to avoid is irrelevant and never a FAIL (soybeans are fine for a guest who is allergic to eggs). An empty allergen list with every ingredient recognized and the allergen assessment "assessed" is PASS when no ingredient is an avoided food; it is UNKNOWN only when an ingredient is unrecognized or the assessment needs review.
+
 ## Evidence rule
 
 Quote the evidence exactly as it appears in the chunk (an ingredient line, an allergen entry, or a sentence of the instructions). For PASS on an "absence" criterion (for example "no animal-derived ingredient"), quote the complete ingredient list. If you cannot quote evidence from the chunk, the verdict is UNKNOWN.

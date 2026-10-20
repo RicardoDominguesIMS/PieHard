@@ -28,12 +28,19 @@ button:disabled { cursor: wait; opacity: .7; }
 .quiet-button:hover { border-color: var(--accent); color: var(--accent-dark); }
 
 .intro { max-width: 690px; margin: 85px auto 34px; text-align: center; }
+.hero-icon { width: 180px; height: auto; margin: 0 auto 10px; display: block; }
+.hero-icon .steam { animation: steam 3s ease-in-out infinite; }
+@keyframes steam { 50% { transform: translateY(-4px); opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .hero-icon .steam { animation: none; } }
+.tagline { margin: 12px 0 0; color: var(--accent-dark); font-size: 13px; font-style: italic; }
 .eyebrow { margin: 0; color: var(--accent); font-size: 10px; line-height: 1.5; letter-spacing: .18em; font-weight: 700; }
 h1, h2, h3, p { margin-top: 0; }
 h1, .recipe-heading h2, .clarification-card h2 { font-family: "Playfair Display", Georgia, serif; }
 h1 { margin: 11px 0 12px; font-size: clamp(42px, 7vw, 65px); line-height: 1.08; letter-spacing: -.04em; font-weight: 500; }
 h1 em { color: var(--accent); font-weight: 500; }
-.intro-copy { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+.intro h1 { line-height: 1.2; }
+.intro h1 .brand { display: block; color: #c0392b; font-size: clamp(40px, 7vw, 60px); font-weight: 600; }
+.intro h1 .slogan { display: block; margin-top: 10px; font-family: "DM Sans", sans-serif; color: var(--accent-dark); font-size: 15px; font-style: italic; font-weight: 400; letter-spacing: 0; line-height: 1.5; }
 
 .search-panel, .recipe-card, .clarification-card { border: 1px solid var(--line); border-radius: 15px; background: var(--white); box-shadow: 0 12px 38px #54321a0b; }
 .search-panel { padding: 14px 17px 12px; }
@@ -100,7 +107,6 @@ h1 em { color: var(--accent); font-weight: 500; }
   .topbar { padding: 18px 0; }
   .quiet-button { padding: 9px 10px; font-size: 10px; }
   .intro { margin: 64px auto 25px; }
-  .intro-copy { max-width: 370px; margin: auto; font-size: 13px; }
   .search-footer { align-items: flex-end; }
   .hint { max-width: 170px; line-height: 1.5; }
   .recipe-columns { grid-template-columns: 1fr; gap: 25px; }

@@ -845,7 +845,7 @@ class RecipeWorkflowTests(unittest.TestCase):
         invalid_search = client.post("/api/search", json={"query": ""})
 
         self.assertEqual(page.status_code, 200)
-        self.assertIn(b"What sounds", page.data)
+        self.assertIn(b"The dessert finder that never gives up.", page.data)
         self.assertEqual(invalid_search.status_code, 400)
         self.assertEqual(client.get("/api/status").json["recipe_count"], 0)
         self.assertIn(b"Configure chunks", client.get("/backoffice").data)

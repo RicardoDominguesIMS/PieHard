@@ -1,6 +1,6 @@
 # Process diagram
 
-Mermaid diagrams of the Sweet Search flows. They show where the RAG index is queried and where the LLM (`ask` in `src/llm.py`) is called.
+Mermaid diagrams of the Pie Hard flows. They show where the RAG index is queried and where the LLM (`ask` in `src/llm.py`) is called.
 
 Legend: `[(...)]` RAG index (SQLite) · `[[...]]` LLM call (`ask`) · plain boxes are deterministic backend logic.
 
@@ -10,7 +10,7 @@ The orange box is the external LLM. It is not part of the implemented solution a
 
 ```mermaid
 flowchart LR
-    subgraph SOL[Sweet Search solution - implemented]
+    subgraph SOL[Pie Hard solution - implemented]
         direction LR
         DOC[resources/ recipe documents]
         ING[Ingestion and indexing]

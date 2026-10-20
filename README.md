@@ -1,6 +1,6 @@
-# Sweet Search
+# Pie Hard
 
-Sweet Search finds a dessert recipe from source documents in `resources/`. Recipe-document evaluation uses the existing LLM `ask` function, extracted recipe data is indexed as one complete recipe per SQLite FTS chunk, and a natural-language search returns every close recipe and narrows them with clickable ingredient buttons until you pick one.
+Pie Hard finds a dessert recipe from source documents in `resources/`. Recipe-document evaluation uses the existing LLM `ask` function, extracted recipe data is indexed as one complete recipe per SQLite FTS chunk, and a natural-language search returns every close recipe and narrows them with clickable ingredient buttons until you pick one.
 
 ## Setup
 

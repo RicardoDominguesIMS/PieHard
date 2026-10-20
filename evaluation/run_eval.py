@@ -1,4 +1,4 @@
-"""Runs evaluation/golden_v3.csv through the real search and fills the
+"""Runs evaluation/golden_v4.csv through the real search and fills the
 "Returned recipe" and "Notes" columns with the result.
 
 A row whose Notes start with "Expected: no match." must return no recipe.
@@ -21,7 +21,7 @@ from llm import ask  # noqa: E402
 from recipe_assistant import RecipeAssistant  # noqa: E402
 from recipe_index import RecipeIndex  # noqa: E402
 
-GOLDEN = ROOT / "evaluation" / "golden_v3.csv"
+GOLDEN = ROOT / "evaluation" / "golden_v4.csv"
 JUDGE_PROMPT = (ROOT / "evaluation" / "judge_prompt.md").read_text(encoding="utf-8")
 COLUMNS = ["Test Case ID", "User Input", "Expected Category", "Returned recipe", "Notes"]
 RESULT_MARK = " | Result: "
@@ -67,6 +67,53 @@ def check_servings(request: str, recipe: dict) -> dict:
     served = int(numbers[0])
     verdict = "PASS" if served >= people else "FAIL"
     return {"verdict": verdict, "evidence": f"servings {served} for {people} people"}
+
+
+AVOID_TERMS = {
+    "cereals containing gluten": r"gluten|coeliac|celiac|wheat",
+    "milk": r"milk|lactose|dairy",
+    "eggs": r"eggs?",
+    "tree nuts": r"tree nuts?|nuts?|almonds?|hazelnuts?|walnuts?|cashews?|pistachios?",
+    "peanuts": r"peanuts?",
+    "soybeans": r"soy|soya|soybeans?",
+    "fish": r"fish",
+    "crustaceans": r"crustaceans?|shellfish",
+    "sesame": r"sesame",
+    "mustard": r"mustard",
+    "celery": r"celery",
+    "lupin": r"lupin",
+}
+AVOID_CONTEXT = (
+    r"(?:all?erg\w*\s+(?:to\s+)?|intoleran\w*\s+to\s+|without\s+|avoid\s+|free of\s+|no\s+|"
+    r"can(?:['\u2019]?t|not)\s+(?:have|eat)\s+)(?:{t})\b"
+)
+AVOID_SUFFIX = r"\b(?:{t})(?:[- ]free|\s+all?erg\w*|\s+intoleran\w*)"
+
+
+def avoided_groups(request: str) -> list[str]:
+    """Allergen groups the request says to avoid, found with fixed vocabulary (coeliac = gluten, lactose = milk)."""
+    found = []
+    for group, terms in AVOID_TERMS.items():
+        patterns = [AVOID_CONTEXT.format(t=terms), AVOID_SUFFIX.format(t=terms)]
+        if group == "cereals containing gluten":
+            patterns.append(r"\b(?:coeliac|celiac)\b")
+        if any(re.search(p, request, re.IGNORECASE) for p in patterns):
+            found.append(group)
+    return found
+
+
+def check_allergens(request: str, recipe: dict) -> dict | None:
+    """Deterministic allergen check. Returns None when the request names no allergen group."""
+    groups = avoided_groups(request)
+    if not groups:
+        return None
+    listed = {str(a.get("name", "")).casefold() for a in recipe.get("allergens", [])}
+    if recipe.get("allergen_status") != "assessed":
+        return {"verdict": "UNKNOWN", "evidence": "allergen assessment needs review"}
+    hits = [g for g in groups if g in listed]
+    if hits:
+        return {"verdict": "FAIL", "evidence": f"recipe lists {', '.join(hits)}"}
+    return {"verdict": "PASS", "evidence": f"avoided {', '.join(groups)}; recipe allergens: {sorted(listed) or 'none'}"}
 
 
 def judge(criterion: str, request: str, recipe: dict) -> dict:
@@ -118,7 +165,8 @@ def main() -> None:
                 verdict = (
                     check_servings(request, recipe)
                     if name == "servings"
-                    else judge(CRITERIA[name], request, recipe)
+                    else (check_allergens(request, recipe) if name == "Allergen-free" else None)
+                    or judge(CRITERIA[name], request, recipe)
                 )
                 if verdict["verdict"] != "PASS":
                     failed.append(f"{name}={verdict['verdict']}")
